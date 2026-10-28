@@ -17,16 +17,22 @@ export interface SettingsDraft {
 
 /**
  * Draft state for a settings UI. Filters are edited as a draft and applied on
- * close, so the game remounts only once. Escape closes too.
+ * close, so the game remounts only once. Escape closes too, unless `closeOnEscape` is false.
  */
-export function useSettingsDraft(songs: Song[], filters: Filters, onClose: (f: Filters) => void): SettingsDraft {
+export function useSettingsDraft(
+  songs: Song[],
+  filters: Filters,
+  onClose: (f: Filters) => void,
+  { closeOnEscape = true }: { closeOnEscape?: boolean } = {},
+): SettingsDraft {
   const [draft, setDraft] = useState<Filters>(filters);
 
   useEffect(() => {
+    if (!closeOnEscape) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose(draft);
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [draft, onClose]);
+  }, [draft, onClose, closeOnEscape]);
 
   const allDecades = draft.decades.length === DECADES.length;
 

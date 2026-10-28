@@ -28,6 +28,7 @@ import { DECADES } from '../../core/songs';
 function App() {
   const library = useLibrary();
   // loadError -> error screen; !songs -> loading screen;
+  // !setupDone -> setup screen (game options + START, calls library.startGame(filters));
   // playlist.length === 0 -> empty state (with a button to open settings);
   // else <Game key={library.gameKey} songs={library.playlist} … />
   // {library.settingsOpen && <Settings songs={library.songs} filters={library.filters} onClose={library.closeSettings} />}
@@ -56,6 +57,8 @@ The shared acceptance test drives every design through these attributes only:
 | `status`            | Has `data-status={player.status}`; its text is `statusText(player, t)`. |
 | `reveal`, `restart` | Buttons. |
 | `prev`, `next`      | Buttons with the `disabled` attribute when they're unavailable. |
+| `setup-screen`      | The setup page shown before the game (after the password, and on every app launch). |
+| `setup-start`       | Starts the game with the chosen options; `disabled` when no songs match. |
 | `settings-open`     | Opens settings. |
 | `settings-done`     | Applies and closes settings. |
 | `lang-he`, `lang-en`, `lang-both` | Song-language filter options. |

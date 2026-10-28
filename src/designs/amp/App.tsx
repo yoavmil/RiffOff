@@ -10,6 +10,7 @@ import { Logo } from './components/Logo';
 import { Nameplate } from './components/Nameplate';
 import { Pedal } from './components/Pedal';
 import { SettingsSheet } from './components/SettingsSheet';
+import { SetupScreen } from './components/SetupScreen';
 
 export default function App() {
   const { t } = useI18n();
@@ -37,6 +38,17 @@ export default function App() {
           {t.tuningUp}
         </p>
       </div>
+    );
+  }
+  if (!library.setupDone) {
+    return (
+      <SetupScreen
+        songs={library.songs}
+        filters={library.filters}
+        solo={library.solo}
+        onSoloChange={library.setSolo}
+        onStart={library.startGame}
+      />
     );
   }
 

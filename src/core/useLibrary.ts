@@ -25,6 +25,10 @@ export interface Library {
   solo: boolean;
   /** Applies immediately (no remount) and is remembered. */
   setSolo: (solo: boolean) => void;
+  /** False until the setup screen's START: show the setup screen instead of the game. */
+  setupDone: boolean;
+  /** Apply the setup screen's filters and start the game. */
+  startGame: (filters: Filters) => void;
   settingsOpen: boolean;
   openSettings: () => void;
   /** Close the settings UI, applying the edited filters. */
@@ -37,6 +41,7 @@ export function useLibrary(): Library {
   const [loadError, setLoadError] = useState<unknown>(null);
   const [filters, setFilters] = useState<Filters>(readFilters);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [setupDone, setSetupDone] = useState(false);
   const [solo, setSoloState] = useState(readSolo);
   const [locked, setLocked] = useState(false);
   const cloudRef = useRef<CloudLibrary | null>(null);
@@ -98,6 +103,11 @@ export function useLibrary(): Library {
     setFilters((prev) => (filtersKey(prev) === filtersKey(next) ? prev : next));
     saveFilters(next);
   }, []);
+  const startGame = useCallback((next: Filters) => {
+    setSetupDone(true);
+    setFilters((prev) => (filtersKey(prev) === filtersKey(next) ? prev : next));
+    saveFilters(next);
+  }, []);
 
   return {
     songs,
@@ -109,6 +119,8 @@ export function useLibrary(): Library {
     gameKey: filtersKey(filters),
     solo,
     setSolo,
+    setupDone,
+    startGame,
     settingsOpen,
     openSettings,
     closeSettings,

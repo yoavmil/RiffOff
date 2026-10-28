@@ -1755,6 +1755,38 @@ html[lang='he'] .sheet-done {
   line-height: 1.4;
 }
 
+/* ----------------------------------------------------------- setup screen */
+
+.amp-setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  height: auto;
+  min-height: 100dvh;
+}
+
+.setup-panel {
+  width: 100%;
+  padding: 14px 16px 18px;
+  border-radius: 18px;
+  background-color: var(--tolex-2);
+  background-image:
+    var(--noise-light),
+    var(--noise-dark),
+    linear-gradient(180deg, #221b17, #120e0c);
+  box-shadow:
+    0 0 0 1.5px rgba(243, 231, 201, 0.3),
+    0 0 0 3px #000,
+    0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+.sheet-done:disabled {
+  cursor: default;
+  filter: grayscale(0.8) brightness(0.6);
+}
+
 /* ------------------------------------------------------------ lock screen */
 
 .lock-plate {

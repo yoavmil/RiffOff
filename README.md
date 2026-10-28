@@ -124,6 +124,8 @@ Without `public/library.json`, the app falls back to [public/songs.json](public/
 
 ## How to host a round
 
+Before the first song, a setup page asks for the game mode, song language and decades (your last choices are pre-selected). Tap **Start** (התחלה) to begin. It appears after the password and every time the app is opened.
+
 1. When a song is selected, its **title and artist show for 3 seconds**. Read them privately. The 3-second bar at the bottom of the card shows the time left.
 2. The card switches to **??? / ???**. Turn the phone to the players.
 3. **Hold** the big button to play. Lift your finger to pause. Hold again to continue from the same spot.
