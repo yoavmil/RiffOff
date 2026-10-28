@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "title": "Neon Highway",
+    "artist": "The Sample Rates",
+    "language": "en",
+    "decade": "80",
+    "audioFile": "/audio/neon-highway.wav"
+  },
+  {
+    "id": 2,
+    "title": "חצות וסטטיק",
+    "artist": "הקרפלוסים",
+    "language": "he",
+    "decade": "70",
+    "audioFile": "/audio/midnight-static.wav"
+  },
+  {
+    "id": 3,
+    "title": "Thunder Pick",
+    "artist": "Overdrive Unit",
+    "language": "en",
+    "decade": "90",
+    "audioFile": "/audio/thunder-pick.wav"
+  },
+  {
+    "id": 4,
+    "title": "קטיפה חשמלית",
+    "artist": "לוסי פילטר",
+    "language": "he",
+    "decade": "00",
+    "audioFile": "/audio/velvet-overdrive.wav"
+  },
+  {
+    "id": 5,
+    "title": "Pocket Rocket",
+    "artist": "Power Chord Patrol",
+    "language": "en",
+    "decade": "10",
+    "audioFile": "/audio/pocket-rocket.wav"
+  },
+  {
+    "id": 6,
+    "title": "Missing File Test",
+    "artist": "Delete Me Before Game Night",
+    "language": "en",
+    "decade": "20",
+    "audioFile": "/audio/this-file-does-not-exist.mp3"
+  }
+]
