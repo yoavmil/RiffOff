@@ -1,0 +1,8 @@
+# Local guitar stem separation for RiffOff (not used by the web app).
+# Python 3.11, NVIDIA GPU with a CUDA 12.8-capable driver.
+# Install:  python -m pip install -r requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.11.0+cu128
+audio-separator[gpu]==0.47.1
+soundfile
+spotdl==4.6.0

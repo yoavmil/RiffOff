@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RiffOff Studio</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <h1>Riff<span>Off</span> Studio</h1>
+      <p id="playlist-size" class="muted"></p>
+    </header>
+
+    <main class="layout">
+      <section class="panel queue-panel">
+        <form id="add-form" class="add">
+          <label for="sources">Add songs</label>
+          <textarea
+            id="sources"
+            rows="3"
+            placeholder="Paste Spotify track links, one per line (a search link or “Artist - Title” works too)"
+          ></textarea>
+          <div class="row">
+            <select id="add-language" aria-label="Song language">
+              <option value="">Language: set later</option>
+              <option value="he">Hebrew</option>
+              <option value="en">English</option>
+            </select>
+            <button type="submit" class="primary">Add to queue</button>
+          </div>
+          <p id="add-message" class="muted small"></p>
+        </form>
+
+        <h2>Queue</h2>
+        <ul id="queue" class="queue"></ul>
+        <p id="queue-empty" class="muted small">Nothing here yet. Add a few links above; they're prepared one at a time.</p>
+      </section>
+
+      <section class="panel editor-panel" id="editor" hidden>
+        <div class="editor-head">
+          <h2 id="editor-title"></h2>
+          <button type="button" id="discard" class="danger ghost">Give up on this song</button>
+        </div>
+
+        <div class="wave-wrap">
+          <canvas id="wave" height="160" aria-label="Waveform: drag to mark the clip, click to jump"></canvas>
+          <p id="wave-status" class="wave-status">Loading the guitar track…</p>
+        </div>
+
+        <div class="transport">
+          <button type="button" id="play" class="primary">▶ Play</button>
+          <button type="button" id="play-clip">▶ Play clip</button>
+          <label class="check"><input type="checkbox" id="loop" /> Loop clip</label>
+          <span id="time" class="time">0:00.0 / 0:00.0</span>
+        </div>
+
+        <div class="marks">
+          <div class="mark">
+            <span>Start</span>
+            <input id="start" inputmode="decimal" aria-label="Clip start (m:ss.s)" />
+            <button type="button" data-nudge="start:-0.5">−½s</button>
+            <button type="button" data-nudge="start:0.5">+½s</button>
+            <button type="button" id="set-start">Set to playhead [</button>
+          </div>
+          <div class="mark">
+            <span>End</span>
+            <input id="end" inputmode="decimal" aria-label="Clip end (m:ss.s)" />
+            <button type="button" data-nudge="end:-0.5">−½s</button>
+            <button type="button" data-nudge="end:0.5">+½s</button>
+            <button type="button" id="set-end">Set to playhead ]</button>
+          </div>
+          <p id="clip-length" class="muted small"></p>
+        </div>
+
+        <form id="save-form" class="details">
+          <label>Title <input id="title" dir="auto" required /></label>
+          <label>Artist <input id="artist" dir="auto" required /></label>
+          <label
+            >Language
+            <select id="language" required>
+              <option value="">Choose…</option>
+              <option value="he">Hebrew</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          <label
+            >Decade
+            <select id="decade" required>
+              <option value="">Choose…</option>
+              <option value="60">60s</option>
+              <option value="70">70s</option>
+              <option value="80">80s</option>
+              <option value="90">90s</option>
+              <option value="00">2000s</option>
+              <option value="10">2010s</option>
+              <option value="20">2020s</option>
+            </select>
+          </label>
+          <div class="save-row">
+            <button type="submit" class="primary big" id="save">Save clip to playlist</button>
+            <p id="save-message" class="small"></p>
+          </div>
+        </form>
+        <p class="muted small keys">Keys: Space play/pause · [ set start · ] set end · C play clip</p>
+      </section>
+
+      <section class="panel editor-placeholder" id="placeholder">
+        <p class="muted">Select a ready song in the queue to mark its clip.</p>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

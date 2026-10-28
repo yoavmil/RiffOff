@@ -1,0 +1,17 @@
+node_modules
+dist
+*.tsbuildinfo
+.DS_Store
+separated
+tools/guitar-separation/.venv
+tools/guitar-separation/models
+tools/guitar-separation/output
+tools/guitar-separation/riffs
+__pycache__/
+
+# Plain-text playlist, clips and Cloudflare credentials: never commit
+private/
+tools/guitar-separation/picks.csv
+tools/guitar-separation/studio-queue.json
+.wrangler/
+.dev.vars*

@@ -1,0 +1,53 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const admin = JSON.parse(readFileSync(join(root, 'private/cloudflare-admin.json'), 'utf8'));
+const secretsPath = join(root, 'private/cloudflare-secrets.json');
+const secrets = existsSync(secretsPath) ? JSON.parse(readFileSync(secretsPath, 'utf8')) : {};
+const password = process.env.RIFFOFF_PASSWORD ?? secrets.GAME_PASSWORD;
+if (!password) throw new Error('Set RIFFOFF_PASSWORD');
+const source = process.env.RIFFOFF_UPLOAD_DIR ?? join(root, 'private/cloudflare-migration');
+const expected = JSON.parse(readFileSync(join(source, 'songs.json'), 'utf8'));
+const base = process.env.RIFFOFF_LIBRARY_URL ?? admin.url;
+const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+
+assert.equal((await fetch(`${base}/songs.json`)).status, 401);
+assert.equal((await fetch(`${base}/session`, { method: 'POST', body: JSON.stringify({ password: 'invalid-migration-check' }) })).status, 401);
+const login = await fetch(`${base}/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
+assert.equal(login.status, 200);
+const { token } = await login.json();
+const response = await fetch(`${base}/songs.json`, { headers: { Authorization: `Bearer ${token}`, Origin: 'https://yoavmil.github.io' } });
+assert.equal(response.status, 200);
+assert.equal(response.headers.get('Access-Control-Allow-Origin'), '*');
+const actual = await response.json();
+assert.equal(actual.length, expected.length);
+let totalBytes = 0;
+for (let i = 0; i < expected.length; i++) {
+  const { audioFile: ignoredExpected, ...expectedMetadata } = expected[i];
+  const { audioFile, ...actualMetadata } = actual[i];
+  assert.deepEqual(actualMetadata, expectedMetadata, `Playlist order/metadata mismatch at entry ${i + 1}`);
+  const original = readFileSync(join(source, 'audio', basename(ignoredExpected)));
+  assert.equal((await fetch(audioFile, { method: 'HEAD' })).headers.get('Content-Length'), String(original.length));
+  const clip = await fetch(audioFile);
+  assert.equal(clip.status, 200);
+  assert.equal(clip.headers.get('Content-Type'), 'audio/mpeg');
+  const bytes = Buffer.from(await clip.arrayBuffer());
+  assert.equal(digest(bytes), digest(original), `MP3 hash mismatch at entry ${i + 1}`);
+  const range = await fetch(audioFile, { headers: { Range: 'bytes=0-1' } });
+  assert.equal(range.status, 206);
+  assert.equal(range.headers.get('Content-Range'), `bytes 0-1/${original.length}`);
+  assert.deepEqual(Buffer.from(await range.arrayBuffer()), original.subarray(0, 2));
+  totalBytes += original.length;
+}
+const firstUrl = actual[0].audioFile;
+assert.equal((await fetch(firstUrl.split('?')[0])).status, 401);
+assert.equal((await fetch(firstUrl, { headers: { Range: 'bytes=999999999-' } })).status, 416);
+const suffix = await fetch(firstUrl, { headers: { Range: 'bytes=-2' } });
+assert.equal(suffix.status, 206);
+const first = readFileSync(join(source, 'audio', basename(expected[0].audioFile)));
+assert.deepEqual(Buffer.from(await suffix.arrayBuffer()), first.subarray(-2));
+console.log(`Live Cloudflare verification passed: ${actual.length} MP3s, ${totalBytes} identical bytes, playlist order, authentication, CORS, HEAD, and byte ranges.`);
