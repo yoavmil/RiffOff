@@ -13,7 +13,7 @@
     "library:upload": "node scripts/upload-library.mjs",
     "library:verify": "node scripts/verify-library.mjs",
     "test:library": "node --test cloudflare/library/worker.test.mjs cloudflare/library/client.test.mjs",
-    "studio": "tools/guitar-separation/.venv/Scripts/python tools/guitar-separation/studio.py"
+    "studio": "node scripts/studio.mjs"
   },
   "dependencies": {
     "@fontsource/bebas-neue": "^5.3.0",
