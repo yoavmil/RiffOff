@@ -12,6 +12,8 @@ export interface Song {
   audioFile: string;
   language: SongLanguage;
   decade: Decade;
+  /** Link to the original song, shown with the answer. Only open.spotify.com links are kept. */
+  spotifyUrl?: string;
 }
 
 export type PlaylistErrorCode =
@@ -76,6 +78,16 @@ export async function loadSongs(): Promise<Song[]> {
 }
 
 /** Validates and normalizes a playlist (from the cloud service or demo songs.json). */
+function spotifyLink(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' && url.hostname === 'open.spotify.com' ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function parsePlaylist(data: unknown): Song[] {
   if (!Array.isArray(data)) throw new PlaylistError('notArray');
   if (data.length === 0) throw new PlaylistError('empty');
@@ -104,6 +116,7 @@ export function parsePlaylist(data: unknown): Song[] {
       audioFile: String(s.audioFile).trim(),
       language,
       decade,
+      spotifyUrl: spotifyLink(s.spotifyUrl),
     };
   });
 }

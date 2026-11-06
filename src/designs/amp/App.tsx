@@ -117,6 +117,7 @@ function Game({ songs, solo, onOpenSettings }: { songs: Song[]; solo: boolean; o
         song={game.song}
         previewing={game.previewing}
         revealed={game.revealed}
+        hintsVisible={game.hintsVisible}
         selectionKey={game.selection}
         previewMs={game.previewMs}
       />

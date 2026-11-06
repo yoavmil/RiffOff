@@ -23,6 +23,8 @@ const en = {
   theAnswer: 'The answer',
   mysteryRiff: 'Mystery riff',
   songHidden: 'Song hidden',
+  hints: 'Hints',
+  openSpotify: 'Spotify',
 
   // Hold button
   holdToPlay: 'HOLD TO PLAY',
@@ -125,6 +127,8 @@ const he: Dict = {
   theAnswer: 'התשובה',
   mysteryRiff: 'ריף מסתורי',
   songHidden: 'השיר מוסתר',
+  hints: 'רמזים',
+  openSpotify: 'ספוטיפיי',
 
   holdToPlay: 'החזיקו לניגון',
   pressAndHold: 'לחיצה ארוכה',

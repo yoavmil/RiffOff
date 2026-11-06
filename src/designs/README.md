@@ -41,7 +41,7 @@ function Game({ songs }) {
 }
 ```
 
-Key fields: `game.song` (`title`, `artist`, `language`, `decade`), `game.index`/`count`, `game.answerVisible`, `game.previewing` (first 3 s after selection; show a countdown using `game.previewMs` and restart it with `key={game.selection}`), `game.revealed`, `game.progress` (0..1), `game.next/previous/reveal`, `game.canNext/canPrevious`. Player: `status` (`loading | ready | buffering | playing | paused | ended | error`), `holding`, `currentTime`, `duration`, `restart()`, `release()`. Call `player.release()` before opening settings.
+Key fields: `game.song` (`title`, `artist`, `language`, `decade`, optional `spotifyUrl`), `game.index`/`count`, `game.answerVisible`, `game.hintsVisible` (language/decade tags), `game.previewing` (first 3 s after selection; show a countdown using `game.previewMs` and restart it with `key={game.selection}`), `game.revealed`, `game.progress` (0..1), `game.next/previous/reveal`, `game.canNext/canPrevious`. Player: `status` (`loading | ready | buffering | playing | paused | ended | error`), `holding`, `currentTime`, `duration`, `restart()`, `release()`. Call `player.release()` before opening settings.
 
 Strings come from `t` (Hebrew and English). A design may add a few design-specific words in its own folder, but it must provide both `he` and `en` and pick them with `useI18n().lang`.
 
@@ -52,7 +52,9 @@ The shared acceptance test drives every design through these attributes only:
 | `data-testid`       | Element / requirement |
 | ------------------- | --------------------- |
 | `hold`              | The element with `{...useHoldGesture(...)}` spread on it (carries `aria-pressed`, `aria-disabled`). |
-| `song-title`, `song-artist` | Text is the answer only while `game.answerVisible`; otherwise a placeholder. The answer, and the language/decade tags, must not be in the DOM while hidden. |
+| `song-title`, `song-artist` | Text is the answer only while `game.answerVisible`; otherwise a placeholder. The answer must not be in the DOM while hidden. |
+| `song-hints`        | The language/decade tags; in the DOM only while `game.hintsVisible`. |
+| `song-link`         | Link to `song.spotifyUrl` (when set), only while `game.revealed`. |
 | `song-counter`      | Has `data-position={`${index + 1}/${count}`}`. |
 | `status`            | Has `data-status={player.status}`; its text is `statusText(player, t)`. |
 | `reveal`, `restart` | Buttons. |

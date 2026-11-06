@@ -530,6 +530,37 @@ html[lang='he'] .plate-tag {
   box-shadow: inset 0 0 0 1px rgba(90, 58, 28, 0.35);
 }
 
+/* Hints on the dark, hidden plate: language and decade light up in amber. */
+.plate-tags.is-hint span {
+  background: rgba(255, 173, 51, 0.1);
+  color: var(--amber-hot);
+  box-shadow: inset 0 0 0 1px rgba(255, 173, 51, 0.45);
+  animation: hint-in 0.5s ease-out;
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+.plate-link {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  background: #1c120a;
+  color: #9fe27a;
+  box-shadow: inset 0 0 0 1px rgba(159, 226, 122, 0.5);
+}
+
+.plate-link:active {
+  background: #2a1b0f;
+}
+
 .plate-tags.is-placeholder span {
   width: 52px;
   background: none;

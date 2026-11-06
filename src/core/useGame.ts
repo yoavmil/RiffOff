@@ -5,6 +5,8 @@ import { readSavedSongKey, resolveAudioUrl, saveSongKey } from './songs';
 import type { Song } from './songs';
 
 export const PREVIEW_MS = 3000;
+/** Seconds of playback after which the language and decade are shown as hints. */
+export const HINT_AFTER_S = 10;
 
 export interface Game {
   song: Song;
@@ -15,8 +17,13 @@ export interface Game {
   previewing: boolean;
   /** True after REVEAL until the next navigation. */
   revealed: boolean;
-  /** previewing || revealed: render title/artist (and tags) only when this is true. */
+  /** previewing || revealed: render title/artist only when this is true. */
   answerVisible: boolean;
+  /**
+   * answerVisible, or the song has played for HINT_AFTER_S seconds: render the
+   * language and decade tags only when this is true. Stays on until the next navigation.
+   */
+  hintsVisible: boolean;
   /** Increments on each selection; use as a React `key` to restart preview animations. */
   selection: number;
   previewMs: number;
@@ -42,6 +49,7 @@ export function useGame(songs: Song[], { solo = false }: { solo?: boolean } = {}
   const soloRef = useRef(solo);
   soloRef.current = solo;
   const [revealed, setRevealed] = useState(false);
+  const [hinted, setHinted] = useState(false);
 
   const song = songs[index];
   const next = index + 1 < songs.length ? songs[index + 1] : null;
@@ -60,6 +68,14 @@ export function useGame(songs: Song[], { solo = false }: { solo?: boolean } = {}
     if (solo) setPreviewing(false);
   }, [solo]);
 
+  // Hints unlock after HINT_AFTER_S seconds of playback (or at the end of a
+  // shorter clip) and survive RESTART. Keyed on the player's values only: right
+  // after a song change they still describe the previous song until the player
+  // resets them, and those stale values must not unlock the new song's hints.
+  useEffect(() => {
+    if (player.currentTime >= HINT_AFTER_S || player.status === 'ended') setHinted(true);
+  }, [player.currentTime, player.status]);
+
   useEffect(() => saveSongKey(song.key), [song.key]);
 
   const goTo = useCallback(
@@ -69,6 +85,7 @@ export function useGame(songs: Song[], { solo = false }: { solo?: boolean } = {}
       setIndex(i);
       setPreviewing(!soloRef.current);
       setRevealed(false);
+      setHinted(false);
       setSelection((n) => n + 1);
     },
     [player, songs.length],
@@ -81,6 +98,7 @@ export function useGame(songs: Song[], { solo = false }: { solo?: boolean } = {}
     previewing,
     revealed,
     answerVisible: previewing || revealed,
+    hintsVisible: previewing || revealed || hinted,
     selection,
     previewMs: PREVIEW_MS,
     canPrevious: index > 0,

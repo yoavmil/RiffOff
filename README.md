@@ -73,6 +73,7 @@ The deployed playlist is password-protected; see [The private playlist](#the-pri
 
 - **Order matters.** Songs play exactly in the order they appear in the file. Nothing is shuffled. Filtering only skips songs; it never reorders them.
 - `title`, `artist`, `audioFile`, `language` and `decade` are required. `id` is optional.
+- `spotifyUrl` is optional: a `https://open.spotify.com/track/…` link to the original song, shown after REVEAL ANSWER. The studio fills it in.
 - `language` is `"he"` (Hebrew) or `"en"` (English). `"Hebrew"` and `"English"` are accepted too.
 - `decade` is one of `"60"`, `"70"`, `"80"`, `"90"`, `"00"`, `"10"` or `"20"`. A year such as `1985` or a form such as `"80s"` is accepted too.
 - `audioFile` is a path inside `public/` (for example, `/audio/my-riff.mp3`) or a full `https://` URL.
@@ -129,9 +130,10 @@ Before the first song, a setup page asks for the game mode, song language and de
 1. When a song is selected, its **title and artist show for 3 seconds**. Read them privately. The 3-second bar at the bottom of the card shows the time left.
 2. The card switches to **??? / ???**. Turn the phone to the players.
 3. **Hold** the big button to play. Lift your finger to pause. Hold again to continue from the same spot.
-4. **REVEAL ANSWER** shows the answer until you move to another song.
-5. **RESTART RIFF** jumps back to the start without playing.
-6. **NEXT** / **PREVIOUS** stop the music and load the other song from its beginning.
+4. **Hints:** after 10 seconds of playback (or when a shorter clip ends), the song's language and decade appear on the card. The title stays hidden.
+5. **REVEAL ANSWER** shows the answer until you move to another song, with a **Spotify** link to the original.
+6. **RESTART RIFF** jumps back to the start without playing. Hints stay.
+7. **NEXT** / **PREVIOUS** stop the music and load the other song from its beginning.
 
 The current song is saved, so a page refresh returns to the same song. It doesn't autoplay, and it shows the 3-second preview again.
 
@@ -144,7 +146,7 @@ Tap the sliders button in the header to open **Settings** (הגדרות):
 - **Decades:** pick any combination, or *All*.
 - **Interface language:** the UI is Hebrew (right-to-left) by default. Switch to English here.
 
-The sheet shows how many songs match while you choose. Filters apply when you tap **Done** (סיום): the game then plays only the matching songs, still in playlist order. If the current song still matches, you stay on it; otherwise the game starts at the first matching song. Filters, the game mode and the interface language are remembered on the device. The song's language and decade tags are shown only while the answer is visible, because they would be hints.
+The sheet shows how many songs match while you choose. Filters apply when you tap **Done** (סיום): the game then plays only the matching songs, still in playlist order. If the current song still matches, you stay on it; otherwise the game starts at the first matching song. Filters, the game mode and the interface language are remembered on the device. The song's language and decade tags stay hidden until the hint time or the answer, because they are hints.
 
 ## How the hold-to-play button stays reliable
 
