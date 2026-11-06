@@ -261,6 +261,29 @@ button.ghost {
   color: var(--ok);
 }
 
+.chip.downloading,
+.chip.saving {
+  background: var(--amber-dim);
+  color: var(--text);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.chip.downloaded {
+  background: var(--line);
+  color: var(--text);
+}
+
+.chip.listing {
+  background: var(--line);
+  color: var(--text);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.chip.listed {
+  border: 1px solid var(--amber);
+  color: var(--amber);
+}
+
 .chip.failed {
   background: rgba(255, 90, 70, 0.15);
   color: var(--danger);

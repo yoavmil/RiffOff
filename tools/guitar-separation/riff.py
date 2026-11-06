@@ -5,8 +5,16 @@
         BS-Roformer SW guitar stem to riffs/<Artist - Title>/guitar.mp3. The
         download and all non-guitar stems are deleted.
 
+    python riff.py download "https://open.spotify.com/track/..." <dir>
+    python riff.py prepare --downloaded <dir>
+        The same as prepare, in two steps, so the studio can download the next
+        song while the GPU separates the current one.
+
     python riff.py snip "riffs/<Artist - Title>" --start 0:12.5 --end 0:42
         Cuts guitar.mp3 into clip.mp3 and records the times in meta.json.
+
+    python riff.py tracks "https://open.spotify.com/playlist/..."
+        Prints the playlist's tracks as JSON (used by the studio).
 
 Other candidates (SW guitar + "other", Demucs htdemucs_6s) were compared on 11
 songs and dropped on 2026-10-26; the results are in picks.csv.
@@ -88,23 +96,39 @@ def spotdl_query(source):
     return source
 
 
-def prepare(source, year=None, language=None):
+def download(source, out_dir):
+    """Downloads a song into out_dir (song.spotdl + song.flac) for a later `prepare --downloaded`."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    spotdl("save", spotdl_query(source), "--save-file", "song.spotdl", cwd=out_dir)
+    song = json.loads((out_dir / "song.spotdl").read_text(encoding="utf-8"))[0]
+    spotdl("download", "song.spotdl", "--format", "flac", "--output", "song.{output-ext}", cwd=out_dir)
+    if not (out_dir / "song.flac").is_file():
+        fail("spotdl finished but produced no audio file (no matching YouTube Music track?)")
+    duration = sf.info(str(out_dir / "song.flac")).duration
+    print(f"\nDownloaded {song['artist']} - {song['name']} ({duration:.0f} s)")
+
+
+def prepare(source=None, year=None, language=None, downloaded=None):
+    """Download (unless `downloaded` is a folder from `download`) and write the guitar stem."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        temp = Path(temp_dir)
-        spotdl("save", spotdl_query(source), "--save-file", "song.spotdl", cwd=temp)
-        song = json.loads((temp / "song.spotdl").read_text(encoding="utf-8"))[0]
-        spotdl("download", "song.spotdl", "--format", "flac", "--output", "song.{output-ext}", cwd=temp)
-        source = temp / "song.flac"
-        if not source.is_file():
-            fail("spotdl finished but produced no audio file (no matching YouTube Music track?)")
+        if downloaded is None:
+            downloaded = Path(temp_dir)
+            download(source, downloaded)
+        downloaded = Path(downloaded)
+        song = json.loads((downloaded / "song.spotdl").read_text(encoding="utf-8"))[0]
+        audio = downloaded / "song.flac"
+        if not audio.is_file():
+            fail(f"no downloaded song in {downloaded}")
 
         song_dir = RIFFS_DIR / safe_name(f"{song['artist']} - {song['name']}")
         song_dir.mkdir(parents=True, exist_ok=True)
-        duration = sf.info(str(source)).duration
-        print(f"\nDownloaded {song['artist']} - {song['name']} ({duration:.0f} s). Separating on {device_name()}...")
+        duration = sf.info(str(audio)).duration
+        print(f"Separating {song['artist']} - {song['name']} ({duration:.0f} s) on {device_name()}...")
 
-        stems, sample_rate, elapsed = separate(source, SW_MODEL, duration)
-    # The download and the non-guitar stems are gone with the temp folder.
+        stems, sample_rate, elapsed = separate(audio, SW_MODEL, duration)
+    # The temp download and the non-guitar stems are gone with the temp folder;
+    # a separate download folder is deleted once the guitar stem is written.
 
     guitar = song_dir / GUITAR_FILE
     write_mp3(guitar, stems["guitar"], sample_rate, GUITAR_BITRATE)
@@ -122,9 +146,32 @@ def prepare(source, year=None, language=None):
         "clip": None,
     }
     (song_dir / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+    if downloaded.exists():
+        shutil.rmtree(downloaded, ignore_errors=True)
 
     print(f"Separation took {elapsed:.0f} s (BS-Roformer SW)")
     print(f"Wrote {guitar}")
+
+
+def tracks(url):
+    """Prints a Spotify playlist's tracks as JSON: {"name": ..., "tracks": [{url, title, artist}]}.
+
+    Uses spotdl's playlist listing directly. `spotdl save` would also fetch every
+    song's full metadata one by one, which takes minutes for a big playlist.
+    """
+    if not re.match(r"https://open\.spotify\.com/(intl-\w+/)?playlist/", url):
+        fail("expected a Spotify playlist link like https://open.spotify.com/playlist/...")
+    from spotdl.types.playlist import Playlist
+    from spotdl.utils.config import SPOTIFY_OPTIONS
+    from spotdl.utils.spotify import SpotifyClient
+
+    try:
+        SpotifyClient.init(**SPOTIFY_OPTIONS)
+        info, songs = Playlist.get_metadata(url)
+    except Exception as e:
+        fail(f"could not read the playlist: {e}")
+    listing = [{"url": s.url, "title": s.name, "artist": s.artist} for s in songs]
+    print(json.dumps({"name": info["name"], "tracks": listing}, ensure_ascii=False))
 
 
 def snip(song_dir, start, end):
@@ -161,19 +208,31 @@ def main():
     parser = argparse.ArgumentParser(description="Make a guitar-only RiffOff clip from a Spotify track.")
     commands = parser.add_subparsers(dest="command", required=True)
     p = commands.add_parser("prepare", help="download a Spotify track and write its guitar stem")
-    p.add_argument("source", help="Spotify track link, Spotify search link, or 'Artist - Title'")
+    p.add_argument("source", nargs="?", help="Spotify track link, Spotify search link, or 'Artist - Title'")
+    p.add_argument("--downloaded", help="separate a folder made by 'download' instead of downloading")
     p.add_argument("--year", type=int, help="original release year (default: Spotify album year)")
     p.add_argument("--language", choices=["en", "he"], help="song language, as in songs.json")
+    d = commands.add_parser("download", help="only download a track (for a later 'prepare --downloaded')")
+    d.add_argument("source", help="Spotify track link, Spotify search link, or 'Artist - Title'")
+    d.add_argument("out_dir", help="folder to download into")
     s = commands.add_parser("snip", help="cut guitar.mp3 into clip.mp3")
     s.add_argument("song_dir", help="folder created by 'prepare'")
     s.add_argument("--start", required=True, help="start time, seconds or m:ss")
     s.add_argument("--end", help="end time, seconds or m:ss (default: end of song)")
+    t = commands.add_parser("tracks", help="list a Spotify playlist's tracks as JSON")
+    t.add_argument("url", help="Spotify playlist link")
     args = parser.parse_args()
 
+    if args.command == "tracks":
+        return tracks(args.url)
     if not shutil.which("ffmpeg"):
         fail("ffmpeg was not found on PATH. Install it (winget install Gyan.FFmpeg) and open a new terminal")
     if args.command == "prepare":
-        prepare(args.source, args.year, args.language)
+        if bool(args.source) == bool(args.downloaded):
+            fail("give either a source or --downloaded DIR")
+        prepare(args.source, args.year, args.language, args.downloaded)
+    elif args.command == "download":
+        download(args.source, args.out_dir)
     else:
         snip(args.song_dir, args.start, args.end)
 

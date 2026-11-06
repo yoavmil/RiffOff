@@ -18,14 +18,24 @@ const parseTime = (text) => {
   if (!parts.length || parts.some((p) => p !== '' && !/^\d*\.?\d*$/.test(p))) return NaN;
   return parts.reduce((acc, p) => acc * 60 + (parseFloat(p) || 0), 0);
 };
-const songName = (job) => (job.meta ? `${job.meta.artist} – ${job.meta.title}` : job.source);
+const isPlaylist = (job) => job.kind === 'playlist';
+const songName = (job) =>
+  isPlaylist(job)
+    ? `Playlist: ${job.name || job.source}`
+    : job.meta
+      ? `${job.meta.artist} – ${job.meta.title}`
+      : job.label?.replace(' - ', ' – ') || job.source;
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const CHIP = { listing: 'reading', listed: 'playlist', downloaded: 'waiting', running: 'separating' };
 
 // ------------------------------------------------------------------ queue
 
 let jobs = [];
 let selectedId = null;
 const openLogs = new Set(); // failed jobs whose log is expanded (survives re-renders)
-const ORDER = { running: 0, ready: 1, queued: 2, failed: 3, saved: 4 };
+const ORDER = {
+  listing: 0, saving: 0, ready: 1, running: 2, downloaded: 3, downloading: 3, listed: 4, queued: 5, failed: 6, saved: 7,
+};
 
 async function refresh() {
   try {
@@ -54,45 +64,65 @@ function renderQueue() {
     name.dir = 'auto';
     const chip = document.createElement('span');
     chip.className = `chip ${job.status}`;
-    chip.textContent = job.status;
+    chip.textContent = CHIP[job.status] ?? job.status;
     name.append(chip, songName(job));
 
     const actions = document.createElement('div');
     actions.className = 'job-actions';
     if (job.status === 'failed') actions.append(button('Retry', () => api(`/api/jobs/${job.id}/retry`, {}).then(refresh)));
-    if (job.status === 'saved') {
+    if (isPlaylist(job)) {
+      // Dismissing a playlist row only hides it; the songs it queued stay.
       actions.append(button('Hide', () => api(`/api/jobs/${job.id}/discard`, {}).then(refresh)));
-    } else {
+    } else if (job.status === 'saved') {
+      actions.append(button('Hide', () => api(`/api/jobs/${job.id}/discard`, {}).then(refresh)));
+    } else if (job.status !== 'saving') {
       actions.append(button('Give up', () => giveUp(job), 'danger ghost'));
     }
 
     const sub = document.createElement('div');
     sub.className = 'job-sub';
-    if (job.status === 'running') sub.textContent = `${job.step || 'Working'}… ${job.log.at(-1) ?? ''}`;
-    else if (job.status === 'queued') sub.textContent = 'Waiting for its turn';
-    else if (job.status === 'ready') sub.textContent = 'Ready: click to mark the clip';
-    else if (job.status === 'saved') sub.textContent = `In the playlist as ${job.savedAs}`;
-    else if (job.status === 'failed') {
-      sub.textContent = job.error || 'Failed';
-      sub.classList.add('is-error');
-    }
+    if (job.status === 'listing') sub.textContent = 'Reading the playlist…';
+    else if (job.status === 'listed') {
+      const s = job.summary;
+      const skipped = [
+        s.inPlaylist.length && `${s.inPlaylist.length} already in the playlist`,
+        s.inQueue.length && `${s.inQueue.length} already in the queue`,
+      ].filter(Boolean);
+      sub.textContent = `${s.total} tracks: queued ${s.added}${skipped.length ? `, skipped ${skipped.join(' and ')}` : ''}.`;
+    } else if (job.status === 'running' || job.status === 'downloading') {
+      sub.textContent = `${job.step || 'Working'}… ${job.log.at(-1) ?? ''}`;
+    } else if (job.status === 'downloaded') {
+      sub.textContent = `Downloaded${job.length ? ` (${mmss(job.length)})` : ''}, waiting for the GPU`;
+    } else if (job.status === 'queued') sub.textContent = 'Waiting for its turn';
+    else if (job.status === 'saving') sub.textContent = 'Cutting the clip and publishing the library…';
+    else if (job.status === 'ready') sub.textContent = job.saveError || 'Ready: click to mark the clip';
+    else if (job.status === 'saved') sub.textContent = job.publishError || `In the playlist as ${job.savedAs}`;
+    else if (job.status === 'failed') sub.textContent = job.error || 'Failed';
+    const isError = job.status === 'failed' || (job.status === 'ready' && job.saveError) || (job.status === 'saved' && job.publishError);
+    if (isError) sub.classList.add('is-error');
 
     li.append(name, actions, sub);
-    if (job.status === 'failed' && job.log?.length) {
-      const details = document.createElement('details');
-      details.className = 'job-log';
-      details.open = openLogs.has(job.id);
-      details.addEventListener('toggle', () => (details.open ? openLogs.add(job.id) : openLogs.delete(job.id)));
-      const summary = document.createElement('summary');
-      summary.textContent = 'Show log';
-      const pre = document.createElement('pre');
-      pre.textContent = job.log.slice(-15).join('\n');
-      details.append(summary, pre);
-      li.append(details);
-    }
+    if (job.status === 'failed' && job.log?.length) li.append(expandable(job, 'Show log', job.log.slice(-15).join('\n')));
+    const skippedNames = job.status === 'listed' ? [...job.summary.inPlaylist, ...job.summary.inQueue] : [];
+    if (skippedNames.length) li.append(expandable(job, 'Show skipped songs', skippedNames.join('\n')));
     if (job.status === 'ready') li.addEventListener('click', (e) => !e.target.closest('button') && openEditor(job));
     list.append(li);
   }
+}
+
+// A collapsible text block under a queue row; stays open across re-renders.
+function expandable(job, label, text) {
+  const details = document.createElement('details');
+  details.className = 'job-log';
+  details.open = openLogs.has(job.id);
+  details.addEventListener('toggle', () => (details.open ? openLogs.add(job.id) : openLogs.delete(job.id)));
+  const summary = document.createElement('summary');
+  summary.textContent = label;
+  const pre = document.createElement('pre');
+  pre.dir = 'auto';
+  pre.textContent = text;
+  details.append(summary, pre);
+  return details;
 }
 
 function button(label, onClick, className = '') {
@@ -120,8 +150,13 @@ $('add-form').addEventListener('submit', async (e) => {
   const sources = $('sources').value.split('\n').map((s) => s.trim()).filter(Boolean);
   if (!sources.length) return;
   try {
-    const { added, skipped } = await api('/api/jobs', { sources, language: $('add-language').value });
-    $('add-message').textContent = `Added ${added}${skipped ? `, skipped ${skipped} already in the queue` : ''}.`;
+    const { added, playlists, skipped } = await api('/api/jobs', { sources, language: $('add-language').value });
+    const parts = [
+      added && `added ${added} song${added === 1 ? '' : 's'}`,
+      playlists && `reading ${playlists} playlist${playlists === 1 ? '' : 's'}`,
+      skipped && `skipped ${skipped} already in the queue`,
+    ].filter(Boolean);
+    $('add-message').textContent = parts.length ? `${parts.join(', ')}.`.replace(/^./, (c) => c.toUpperCase()) : '';
     $('sources').value = '';
     refresh();
   } catch (err) {
@@ -365,8 +400,8 @@ async function openEditor(job) {
   $('editor-title').textContent = songName(job);
   $('wave-status').hidden = false;
   $('wave-status').textContent = 'Loading the guitar track…';
-  $('save-message').textContent = '';
-  $('save-message').className = 'small';
+  $('save-message').textContent = job.saveError ?? '';
+  $('save-message').className = job.saveError ? 'small is-error' : 'small';
 
   const meta = job.meta || {};
   $('title').value = meta.title ?? '';
@@ -410,10 +445,10 @@ $('save-form').addEventListener('submit', async (e) => {
   if (!job || !buffer) return;
   const msg = $('save-message');
   $('save').disabled = true;
-  msg.className = 'small';
-  msg.textContent = 'Cutting the clip and publishing the library…';
   try {
-    const result = await api(`/api/jobs/${job.id}/save`, {
+    // The server only checks the form here; cutting and publishing run in the
+    // background (the row shows "saving"), so move straight on to the next song.
+    await api(`/api/jobs/${job.id}/save`, {
       title: $('title').value,
       artist: $('artist').value,
       language: $('language').value,
@@ -421,14 +456,10 @@ $('save-form').addEventListener('submit', async (e) => {
       start: clip.start,
       end: clip.end,
     });
-    stop();
-    msg.className = 'small is-ok';
-    msg.textContent = `Saved as ${result.savedAs}. ${result.published}`;
-    setTimeout(() => {
-      if (selectedId === job.id) closeEditor();
-      const next = jobs.find((j) => j.status === 'ready' && j.id !== job.id);
-      if (next) openEditor(next);
-    }, 1800);
+    job.status = 'saving';
+    const next = jobs.find((j) => j.status === 'ready' && j.id !== job.id);
+    closeEditor();
+    if (next) openEditor(next);
     refresh();
   } catch (err) {
     msg.className = 'small is-error';
