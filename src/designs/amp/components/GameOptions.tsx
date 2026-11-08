@@ -1,6 +1,7 @@
 import { useI18n } from '../../../core/i18n';
 import { DECADES } from '../../../core/songs';
 import type { SettingsDraft } from '../../../core/useSettingsDraft';
+import { OriginIcon } from './OriginIcon';
 
 interface Props {
   draft: SettingsDraft;
@@ -8,7 +9,7 @@ interface Props {
   onSoloChange: (solo: boolean) => void;
 }
 
-/** Game mode, song language and decade selectors, shared by the setup screen and the settings sheet. */
+/** Game mode, song origin and decade selectors, shared by the setup screen and the settings sheet. */
 export function GameOptions({ draft: s, solo, onSoloChange }: Props) {
   const { t } = useI18n();
 
@@ -35,7 +36,7 @@ export function GameOptions({ draft: s, solo, onSoloChange }: Props) {
       </fieldset>
 
       <fieldset className="sheet-group">
-        <legend>{t.songLanguage}</legend>
+        <legend>{t.songOrigin}</legend>
         <div className="selector selector-3">
           {(['he', 'en', 'both'] as const).map((v) => (
             <button
@@ -47,7 +48,8 @@ export function GameOptions({ draft: s, solo, onSoloChange }: Props) {
               onClick={() => s.setLanguage(v)}
             >
               <span className="sel-lamp" aria-hidden="true" />
-              {v === 'both' ? t.both : t.languageName[v]}
+              {v !== 'both' && <OriginIcon origin={v} />}
+              {v === 'both' ? t.both : t.originName[v]}
             </button>
           ))}
         </div>

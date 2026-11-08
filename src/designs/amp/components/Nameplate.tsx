@@ -1,5 +1,6 @@
 import { useI18n } from '../../../core/i18n';
 import type { Song } from '../../../core/songs';
+import { OriginIcon } from './OriginIcon';
 
 interface Props {
   song: Song;
@@ -40,7 +41,10 @@ export function Nameplate({ song, previewing, revealed, hintsVisible, selectionK
               {song.artist}
             </div>
             <div className="plate-tags" data-testid="song-hints">
-              <span>{t.languageName[song.language]}</span>
+              <span>
+                  <OriginIcon origin={song.language} />
+                  {t.originName[song.language]}
+                </span>
               <span>{t.decadeName[song.decade]}</span>
               {revealed && song.spotifyUrl && (
                 <a
@@ -65,7 +69,10 @@ export function Nameplate({ song, previewing, revealed, hintsVisible, selectionK
             </div>
             {hintsVisible ? (
               <div className="plate-tags is-hint" data-testid="song-hints" aria-label={t.hints}>
-                <span>{t.languageName[song.language]}</span>
+                <span>
+                  <OriginIcon origin={song.language} />
+                  {t.originName[song.language]}
+                </span>
                 <span>{t.decadeName[song.decade]}</span>
               </div>
             ) : (

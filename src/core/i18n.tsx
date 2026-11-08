@@ -61,7 +61,7 @@ const en = {
   next: 'NEXT',
 
   // Settings
-  songLanguage: 'Song language',
+  songOrigin: 'Songs from',
   decades: 'Decades',
   all: 'All',
   both: 'Both',
@@ -78,7 +78,8 @@ const en = {
   noMatches: 'No songs match these filters.',
   changeFilters: 'Change filters',
 
-  languageName: { he: 'Hebrew', en: 'English' } as Record<SongLanguage, string>,
+  /** Songs are split by origin: Hebrew songs are "Israel", the rest "World". */
+  originName: { he: 'Israel', en: 'World' } as Record<SongLanguage, string>,
   decadeName: {
     '60': '60s',
     '70': '70s',
@@ -161,10 +162,10 @@ const he: Dict = {
   previous: 'הקודם',
   next: 'הבא',
 
-  songLanguage: 'שפת השירים',
+  songOrigin: 'מקור השירים',
   decades: 'עשורים',
   all: 'הכול',
-  both: 'שתיהן',
+  both: 'שניהם',
   interfaceLanguage: 'שפת הממשק',
   gameMode: 'מצב משחק',
   modeHost: 'מנחה',
@@ -178,7 +179,7 @@ const he: Dict = {
   noMatches: 'אין שירים שמתאימים לסינון הזה.',
   changeFilters: 'שינוי הסינון',
 
-  languageName: { he: 'עברית', en: 'אנגלית' },
+  originName: { he: 'ישראל', en: 'העולם' },
   decadeName: {
     '60': 'שנות ה־60',
     '70': 'שנות ה־70',

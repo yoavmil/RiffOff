@@ -142,7 +142,7 @@ The current song is saved, so a page refresh returns to the same song. It doesn'
 Tap the sliders button in the header to open **Settings** (הגדרות):
 
 - **Game mode:** *Host* (מנחה) shows each song for 3 seconds when it is selected. *Solo* (סולו) never shows it at the start, so you can play along yourself; the answer appears only when you tap REVEAL ANSWER. This applies immediately.
-- **Song language:** Hebrew, English, or both.
+- **Songs from:** Israel (Hebrew songs, flag), the World (everything else, globe), or both.
 - **Decades:** pick any combination, or *All*.
 - **Interface language:** the UI is Hebrew (right-to-left) by default. Switch to English here.
 
