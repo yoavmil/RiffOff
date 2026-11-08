@@ -12,6 +12,6 @@ __pycache__/
 # Plain-text playlist, clips and Cloudflare credentials: never commit
 private/
 tools/guitar-separation/picks.csv
-tools/guitar-separation/studio-queue.json
+tools/guitar-separation/studio-queue*.json
 .wrangler/
 .dev.vars*

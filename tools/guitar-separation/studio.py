@@ -42,6 +42,8 @@ RIFFS_DIR = Path(os.environ.get("RIFF_RIFFS_DIR", TOOL_DIR / "riffs"))
 DOWNLOADS_DIR = RIFFS_DIR / "_downloads"  # songs downloaded ahead, one folder per job id
 STATIC_DIR = TOOL_DIR / "studio"
 STATE_FILE = Path(os.environ.get("STUDIO_STATE_FILE", TOOL_DIR / "studio-queue.json"))
+# Spotify track id -> "Artist – Title" of songs given up on, so re-pasting a playlist skips them.
+GIVEN_UP_FILE = STATE_FILE.with_name(STATE_FILE.stem + "-given-up.json")
 PRIVATE_DIR = Path(os.environ.get("RIFFOFF_PRIVATE_DIR", REPO_DIR / "private"))
 PLAYLIST_FILE = PRIVATE_DIR / "songs.json"
 AUDIO_DIR = PRIVATE_DIR / "audio"
@@ -68,6 +70,17 @@ running = {}  # job id -> Popen of its current riff.py step
 def save_state():
     with lock:
         STATE_FILE.write_text(json.dumps(jobs, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def read_given_up():
+    try:
+        return json.loads(GIVEN_UP_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def write_given_up(given_up):
+    GIVEN_UP_FILE.write_text(json.dumps(given_up, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def find(job_id):
@@ -270,6 +283,11 @@ def discard(job):
         jobs.remove(job)
         proc = running.pop(job["id"], None)
         save_state()
+        tid = track_id(job["source"]) or track_id((job["meta"] or {}).get("spotify_url"))
+        if job.get("kind") != "playlist" and job["status"] not in ("saved", "saving") and tid:
+            meta = job["meta"] or {}
+            label = f"{meta['artist']} – {meta['title']}" if meta.get("title") else job["source"]
+            write_given_up({**read_given_up(), tid: label})
     if proc:
         kill_tree(proc)
         proc.wait(timeout=30)
@@ -347,7 +365,9 @@ def expand_playlist(job):
     listing = json.loads(result.stdout)
 
     in_playlist, in_queue, names = known_songs()
-    added, have, queued, seen = [], [], [], set()
+    with lock:
+        given_up_ids = read_given_up()
+    added, have, queued, given_up, seen = [], [], [], [], set()
     for track in listing["tracks"]:
         tid, label = track_id(track["url"]), f"{track['artist']} – {track['title']}"
         if tid in seen:
@@ -357,6 +377,8 @@ def expand_playlist(job):
             have.append(label)
         elif tid in in_queue:
             queued.append(label)
+        elif tid in given_up_ids:
+            given_up.append(label)
         else:
             added.append(new_job(track["url"], language=job.get("language")))
 
@@ -366,6 +388,7 @@ def expand_playlist(job):
         jobs.extend(added)
     update(job, status="listed", step=None, name=listing["name"], summary={
         "total": len(listing["tracks"]), "added": len(added), "inPlaylist": have, "inQueue": queued,
+        "givenUp": given_up,
     })
     wake_workers()
 
@@ -397,6 +420,8 @@ def check_form(form):
     """The save form's fields, validated. Raises ValueError/KeyError with a message for the user."""
     title, artist = form["title"].strip(), form["artist"].strip()
     language, decade = form["language"], str(form["decade"])
+    if re.search(r"[֐-׿]", title + artist):
+        language = "he"  # a Hebrew title or artist always means a Hebrew song
     start, end = float(form["start"]), float(form["end"])
     if not title or not artist:
         raise ValueError("title and artist are required")
@@ -531,6 +556,11 @@ class Handler(BaseHTTPRequestHandler):
                 playlists = [new_job(s, "listing", kind="playlist", language=language) for s in fresh if PLAYLIST_LINK.match(s)]
                 jobs.extend(added + playlists)
                 save_state()
+                # Pasting a given-up song's own link means you want it after all.
+                given_up = read_given_up()
+                back = {track_id(j["source"]) for j in added} & given_up.keys()
+                if back:
+                    write_given_up({k: v for k, v in given_up.items() if k not in back})
             for job in playlists:
                 start_playlist(job)
             wake_workers()

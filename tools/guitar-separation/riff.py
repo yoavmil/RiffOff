@@ -61,6 +61,11 @@ def safe_name(text):
     return re.sub(r'[<>:"/\\|?*]', "", text).strip(" .")
 
 
+def is_hebrew(text):
+    # A song whose title or artist has Hebrew letters is a Hebrew song.
+    return bool(re.search(r"[֐-׿]", text))
+
+
 def decade(year):
     # songs.json accepts 60, 70, 80, 90, 00, 10, 20
     return f"{year % 100 // 10}0" if year and year >= 1960 else None
@@ -102,11 +107,20 @@ def download(source, out_dir):
     out_dir.mkdir(parents=True, exist_ok=True)
     spotdl("save", spotdl_query(source), "--save-file", "song.spotdl", cwd=out_dir)
     song = json.loads((out_dir / "song.spotdl").read_text(encoding="utf-8"))[0]
-    spotdl("download", "song.spotdl", "--format", "flac", "--output", "song.{output-ext}", cwd=out_dir)
+    get = ("download", "song.spotdl", "--format", "flac", "--output", "song.{output-ext}")
+    spotdl(*get, cwd=out_dir)
     if not (out_dir / "song.flac").is_file():
-        fail("spotdl finished but produced no audio file (no matching YouTube Music track?)")
+        # spotdl's strict matching often finds nothing for Hebrew titles (transliterated
+        # differently on YouTube Music) or long "Live at ...; 2013 Remaster" titles.
+        # Unfiltered, it takes YouTube Music's top hit, which is usually the right upload.
+        print("\nNo strict YouTube Music match; retrying with spotdl's result filter off")
+        spotdl(*get, "--dont-filter-results", cwd=out_dir)
+        if not (out_dir / "song.flac").is_file():
+            fail("spotdl produced no audio file, even unfiltered (song not on YouTube Music?)")
     duration = sf.info(str(out_dir / "song.flac")).duration
     print(f"\nDownloaded {song['artist']} - {song['name']} ({duration:.0f} s)")
+    if abs(duration - song["duration"]) > 15:
+        print(f"WARNING: Spotify says {song['duration']} s; this may be a different version. Listen before clipping.")
 
 
 def prepare(source=None, year=None, language=None, downloaded=None):
@@ -138,7 +152,7 @@ def prepare(source=None, year=None, language=None, downloaded=None):
         "title": song["name"],
         "artist": song["artist"],
         "album": song.get("album_name"),
-        "language": language,
+        "language": "he" if is_hebrew(song["name"] + song["artist"]) else language,
         "year": year,
         "decade": decade(year),
         "duration": round(duration, 3),
@@ -184,8 +198,10 @@ def snip(song_dir, start, end):
 
     start_s = parse_time(start)
     end_s = parse_time(end) if end else meta["duration"]
+    if meta["duration"] < end_s <= meta["duration"] + 0.5:
+        end_s = meta["duration"]  # a rounded "end of song" (263.8 for 263.76) means the end
     if not 0 <= start_s < end_s <= meta["duration"]:
-        fail(f"need 0 <= start < end <= {meta['duration']:.1f} s (got {start_s} to {end_s})")
+        fail(f"need 0 <= start < end <= {meta['duration']:.2f} s, the song's length (got {start_s} to {end_s})")
 
     length = end_s - start_s
     clip = song_dir / "clip.mp3"

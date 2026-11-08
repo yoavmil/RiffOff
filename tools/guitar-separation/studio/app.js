@@ -87,8 +87,10 @@ function renderQueue() {
       const skipped = [
         s.inPlaylist.length && `${s.inPlaylist.length} already in the playlist`,
         s.inQueue.length && `${s.inQueue.length} already in the queue`,
+        s.givenUp?.length && `${s.givenUp.length} given up on`,
       ].filter(Boolean);
-      sub.textContent = `${s.total} tracks: queued ${s.added}${skipped.length ? `, skipped ${skipped.join(' and ')}` : ''}.`;
+      const joined = skipped.length > 1 ? `${skipped.slice(0, -1).join(', ')} and ${skipped.at(-1)}` : skipped[0];
+      sub.textContent = `${s.total} tracks: queued ${s.added}${skipped.length ? `, skipped ${joined}` : ''}.`;
     } else if (job.status === 'running' || job.status === 'downloading') {
       sub.textContent = `${job.step || 'Working'}… ${job.log.at(-1) ?? ''}`;
     } else if (job.status === 'downloaded') {
@@ -103,7 +105,10 @@ function renderQueue() {
 
     li.append(name, actions, sub);
     if (job.status === 'failed' && job.log?.length) li.append(expandable(job, 'Show log', job.log.slice(-15).join('\n')));
-    const skippedNames = job.status === 'listed' ? [...job.summary.inPlaylist, ...job.summary.inQueue] : [];
+    const s = job.summary;
+    const skippedNames = job.status === 'listed'
+      ? [...s.inPlaylist, ...s.inQueue, ...(s.givenUp ?? []).map((n) => `${n} (given up; paste its link to add it back)`)]
+      : [];
     if (skippedNames.length) li.append(expandable(job, 'Show skipped songs', skippedNames.join('\n')));
     if (job.status === 'ready') li.addEventListener('click', (e) => !e.target.closest('button') && openEditor(job));
     list.append(li);
@@ -350,7 +355,9 @@ function setClip(start, end) {
   if (!buffer) return;
   start = Math.max(0, Math.min(start, buffer.duration));
   end = Math.max(0, Math.min(end, buffer.duration));
-  clip = { start: Math.round(start * 10) / 10, end: Math.round(end * 10) / 10 };
+  // Round to 0.1 s, but never past the song's end: 263.76 s must not become 263.8.
+  const round = (t) => Math.min(Math.round(t * 10) / 10, buffer.duration);
+  clip = { start: round(start), end: round(end) };
   $('start').value = fmt(clip.start);
   $('end').value = fmt(clip.end);
   const len = clip.end - clip.start;
@@ -407,6 +414,7 @@ async function openEditor(job) {
   $('title').value = meta.title ?? '';
   $('artist').value = meta.artist ?? '';
   $('language').value = meta.language ?? job.language ?? '';
+  hebrewMeansHebrew();
   $('decade').value = meta.decade ?? '';
 
   const token = ++loadToken;
@@ -423,6 +431,13 @@ async function openEditor(job) {
     if (token === loadToken) $('wave-status').textContent = `Could not load the guitar track (${err.message}).`;
   }
 }
+
+// A Hebrew title or artist always means a Hebrew song (the server enforces this too).
+function hebrewMeansHebrew() {
+  if (/[֐-׿]/.test($('title').value + $('artist').value)) $('language').value = 'he';
+}
+$('title').addEventListener('input', hebrewMeansHebrew);
+$('artist').addEventListener('input', hebrewMeansHebrew);
 
 function closeEditor() {
   stop();
