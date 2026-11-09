@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { applyFilters, filtersKey, loadSongs, parsePlaylist, readFilters, readSolo, saveFilters, saveSolo } from './songs';
+import { applyFilters, clearSongKey, filtersKey, loadSongs, parsePlaylist, readFilters, readSolo, saveFilters, saveSolo, shuffleSongs } from './songs';
 import type { Filters, Song } from './songs';
 import { fetchCloudLibrary, openCloudWithPassword, openCloudWithSavedSession } from './cloudLibrary';
 import type { CloudLibrary } from './cloudLibrary';
@@ -14,7 +14,7 @@ export interface Library {
   /** Load/validation failure; show it with `playlistErrorText(loadError, t)`. */
   loadError: unknown;
   filters: Filters;
-  /** Songs that pass the filters, in playlist order (empty while loading). */
+  /** Songs that pass the filters, shuffled or in playlist order (empty while loading). */
   playlist: Song[];
   /**
    * Key for the game component: `<Game key={library.gameKey} …/>`. Changes when
@@ -27,7 +27,7 @@ export interface Library {
   setSolo: (solo: boolean) => void;
   /** False until the setup screen's START: show the setup screen instead of the game. */
   setupDone: boolean;
-  /** Apply the setup screen's filters and start the game. */
+  /** Apply the setup screen's filters and start the game. With shuffle, deals a new order from its first song. */
   startGame: (filters: Filters) => void;
   settingsOpen: boolean;
   openSettings: () => void;
@@ -42,6 +42,8 @@ export function useLibrary(): Library {
   const [filters, setFilters] = useState<Filters>(readFilters);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [setupDone, setSetupDone] = useState(false);
+  // Fixed for a game, so filter changes keep the same random order; each START deals a new one.
+  const [seed, setSeed] = useState(newSeed);
   const [solo, setSoloState] = useState(readSolo);
   const [locked, setLocked] = useState(false);
   const cloudRef = useRef<CloudLibrary | null>(null);
@@ -90,7 +92,10 @@ export function useLibrary(): Library {
     }
   }, []);
 
-  const playlist = useMemo(() => (songs ? applyFilters(songs, filters) : []), [songs, filters]);
+  const playlist = useMemo(() => {
+    if (!songs) return [];
+    return applyFilters(filters.shuffle ? shuffleSongs(songs, seed) : songs, filters);
+  }, [songs, filters, seed]);
 
   const setSolo = useCallback((value: boolean) => {
     setSoloState(value);
@@ -105,6 +110,10 @@ export function useLibrary(): Library {
   }, []);
   const startGame = useCallback((next: Filters) => {
     setSetupDone(true);
+    if (next.shuffle) {
+      setSeed(newSeed());
+      clearSongKey();
+    }
     setFilters((prev) => (filtersKey(prev) === filtersKey(next) ? prev : next));
     saveFilters(next);
   }, []);
@@ -116,7 +125,7 @@ export function useLibrary(): Library {
     loadError,
     filters,
     playlist,
-    gameKey: filtersKey(filters),
+    gameKey: filters.shuffle ? `${filtersKey(filters)}|${seed}` : filtersKey(filters),
     solo,
     setSolo,
     setupDone,
@@ -125,4 +134,8 @@ export function useLibrary(): Library {
     openSettings,
     closeSettings,
   };
+}
+
+function newSeed(): number {
+  return Math.floor(Math.random() * 2 ** 32);
 }

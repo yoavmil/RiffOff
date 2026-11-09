@@ -5,6 +5,7 @@ import type { Decade, Filters, Song, SongLanguage } from './songs';
 export interface SettingsDraft {
   draft: Filters;
   setLanguage: (language: SongLanguage | 'both') => void;
+  setShuffle: (shuffle: boolean) => void;
   toggleDecade: (decade: Decade) => void;
   /** Select all decades, or clear them all if all are selected. */
   toggleAllDecades: () => void;
@@ -39,6 +40,7 @@ export function useSettingsDraft(
   return {
     draft,
     setLanguage: (language) => setDraft((f) => ({ ...f, language })),
+    setShuffle: (shuffle) => setDraft((f) => ({ ...f, shuffle })),
     toggleDecade: (d) =>
       setDraft((f) => ({
         ...f,

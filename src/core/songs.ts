@@ -126,9 +126,11 @@ export function parsePlaylist(data: unknown): Song[] {
 export interface Filters {
   language: SongLanguage | 'both';
   decades: Decade[];
+  /** Play in a random order (the default) instead of the songs.json order. */
+  shuffle: boolean;
 }
 
-export const DEFAULT_FILTERS: Filters = { language: 'both', decades: [...DECADES] };
+export const DEFAULT_FILTERS: Filters = { language: 'both', decades: [...DECADES], shuffle: true };
 
 export function applyFilters(songs: Song[], f: Filters): Song[] {
   return songs.filter((s) => (f.language === 'both' || s.language === f.language) && f.decades.includes(s.decade));
@@ -136,7 +138,25 @@ export function applyFilters(songs: Song[], f: Filters): Song[] {
 
 /** Stable string for a filter set (decades kept in canonical order). */
 export function filtersKey(f: Filters): string {
-  return `${f.language}|${DECADES.filter((d) => f.decades.includes(d)).join(',')}`;
+  return `${f.language}|${DECADES.filter((d) => f.decades.includes(d)).join(',')}|${f.shuffle ? 'shuffle' : 'list'}`;
+}
+
+/** A random order of songs that is fixed for a given seed (Fisher-Yates over mulberry32). */
+export function shuffleSongs(songs: Song[], seed: number): Song[] {
+  let state = seed >>> 0;
+  const random = () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const out = [...songs];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- storage
@@ -154,6 +174,15 @@ export function readSavedSongKey(): number | null {
   }
 }
 
+/** Forget the current song, so the next game starts at the first song. */
+export function clearSongKey(): void {
+  try {
+    localStorage.removeItem(SONG_KEY);
+  } catch {
+    /* storage disabled */
+  }
+}
+
 export function saveSongKey(key: number): void {
   try {
     localStorage.setItem(SONG_KEY, String(key));
@@ -168,7 +197,7 @@ export function readFilters(): Filters {
     if (!raw) return DEFAULT_FILTERS;
     const language = raw.language === 'he' || raw.language === 'en' ? raw.language : 'both';
     const decades = Array.isArray(raw.decades) ? DECADES.filter((d) => raw.decades!.includes(d)) : [...DECADES];
-    return { language, decades };
+    return { language, decades, shuffle: raw.shuffle !== false };
   } catch {
     return DEFAULT_FILTERS;
   }

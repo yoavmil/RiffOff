@@ -71,7 +71,7 @@ The deployed playlist is password-protected; see [The private playlist](#the-pri
 ]
 ```
 
-- **Order matters.** Songs play exactly in the order they appear in the file. Nothing is shuffled. Filtering only skips songs; it never reorders them.
+- **Order:** by default the game shuffles the songs. With **In order** (לפי הסדר) in the settings, songs play exactly in the order they appear in the file. Filtering only skips songs; it never reorders them.
 - `title`, `artist`, `audioFile`, `language` and `decade` are required. `id` is optional.
 - `spotifyUrl` is optional: a `https://open.spotify.com/track/…` link to the original song, shown after REVEAL ANSWER. The studio fills it in.
 - `language` is `"he"` (Hebrew) or `"en"` (English). `"Hebrew"` and `"English"` are accepted too.
@@ -142,11 +142,12 @@ The current song is saved, so a page refresh returns to the same song. It doesn'
 Tap the sliders button in the header to open **Settings** (הגדרות):
 
 - **Game mode:** *Host* (מנחה) shows each song for 3 seconds when it is selected. *Solo* (סולו) never shows it at the start, so you can play along yourself; the answer appears only when you tap REVEAL ANSWER. This applies immediately.
+- **Song order:** *Shuffle* (ערבוב, the default) plays the songs in a random order, a new one every time you tap Start. *In order* (לפי הסדר) follows the playlist and resumes at the song you were on.
 - **Songs from:** Israel (Hebrew songs, flag), the World (everything else, globe), or both.
 - **Decades:** pick any combination, or *All*.
 - **Interface language:** the UI is Hebrew (right-to-left) by default. Switch to English here.
 
-The sheet shows how many songs match while you choose. Filters apply when you tap **Done** (סיום): the game then plays only the matching songs, still in playlist order. If the current song still matches, you stay on it; otherwise the game starts at the first matching song. Filters, the game mode and the interface language are remembered on the device. The song's language and decade tags stay hidden until the hint time or the answer, because they are hints.
+The sheet shows how many songs match while you choose. Filters apply when you tap **Done** (סיום): the game then plays only the matching songs, in the same order as before. If the current song still matches, you stay on it; otherwise the game starts at the first matching song. Filters, the game mode and the interface language are remembered on the device. The song's language and decade tags stay hidden until the hint time or the answer, because they are hints.
 
 ## How the hold-to-play button stays reliable
 

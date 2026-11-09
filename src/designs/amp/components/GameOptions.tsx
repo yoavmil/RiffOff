@@ -9,7 +9,7 @@ interface Props {
   onSoloChange: (solo: boolean) => void;
 }
 
-/** Game mode, song origin and decade selectors, shared by the setup screen and the settings sheet. */
+/** Game mode, song order, song origin and decade selectors, shared by the setup screen and the settings sheet. */
 export function GameOptions({ draft: s, solo, onSoloChange }: Props) {
   const { t } = useI18n();
 
@@ -33,6 +33,25 @@ export function GameOptions({ draft: s, solo, onSoloChange }: Props) {
           ))}
         </div>
         <p className="sel-hint">{solo ? t.modeSoloHint : t.modeHostHint}</p>
+      </fieldset>
+
+      <fieldset className="sheet-group">
+        <legend>{t.songOrder}</legend>
+        <div className="selector selector-2">
+          {([true, false] as const).map((v) => (
+            <button
+              key={String(v)}
+              type="button"
+              data-testid={v ? 'order-shuffle' : 'order-list'}
+              className={`sel ${s.draft.shuffle === v ? 'is-on' : ''}`}
+              aria-pressed={s.draft.shuffle === v}
+              onClick={() => s.setShuffle(v)}
+            >
+              <span className="sel-lamp" aria-hidden="true" />
+              {v ? t.orderShuffle : t.orderList}
+            </button>
+          ))}
+        </div>
       </fieldset>
 
       <fieldset className="sheet-group">

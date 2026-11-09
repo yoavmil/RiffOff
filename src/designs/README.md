@@ -63,6 +63,7 @@ The shared acceptance test drives every design through these attributes only:
 | `setup-start`       | Starts the game with the chosen options; `disabled` when no songs match. |
 | `settings-open`     | Opens settings. |
 | `settings-done`     | Applies and closes settings. |
+| `order-shuffle`, `order-list` | Song-order options (`draft.shuffle` / `draft.setShuffle`). |
 | `lang-he`, `lang-en`, `lang-both` | Song-origin filter options: Israel (`he` songs), World (`en`), both. |
 | `decade-all`, `decade-60` … `decade-20` | Decade options (`DECADES`). |
 | `match-count`       | Has `data-matches={matches}`. |
