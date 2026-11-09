@@ -367,7 +367,7 @@ def expand_playlist(job):
     in_playlist, in_queue, names = known_songs()
     with lock:
         given_up_ids = read_given_up()
-    added, have, queued, given_up, seen = [], [], [], [], set()
+    added, have, queued, given_up, seen, labels = [], [], [], [], set(), {}
     for track in listing["tracks"]:
         tid, label = track_id(track["url"]), f"{track['artist']} – {track['title']}"
         if tid in seen:
@@ -377,15 +377,20 @@ def expand_playlist(job):
             have.append(label)
         elif tid in in_queue:
             queued.append(label)
+            labels[tid] = label
         elif tid in given_up_ids:
             given_up.append(label)
         else:
-            added.append(new_job(track["url"], language=job.get("language")))
+            # Named from the playlist right away; the download refines it later.
+            added.append(new_job(track["url"], language=job.get("language"), label=label))
 
     with lock:
         if job not in jobs:  # dismissed while reading
             return
         jobs.extend(added)
+        for queued_job in jobs:  # name queued songs from older pastes that have no name yet
+            if not queued_job.get("label") and not queued_job["meta"] and track_id(queued_job["source"]) in labels:
+                queued_job["label"] = labels[track_id(queued_job["source"])]
     update(job, status="listed", step=None, name=listing["name"], summary={
         "total": len(listing["tracks"]), "added": len(added), "inPlaylist": have, "inQueue": queued,
         "givenUp": given_up,
@@ -575,8 +580,8 @@ class Handler(BaseHTTPRequestHandler):
             threading.Thread(target=discard, args=(job,), daemon=True).start()
             return self.send_json({"ok": True})
         if action == "retry":
-            if job["status"] == "failed" and job.get("kind") == "playlist":
-                start_playlist(job)
+            if job["status"] in ("failed", "listed") and job.get("kind") == "playlist":
+                start_playlist(job)  # also "Refresh": re-read the playlist and queue only its new songs
             elif job["status"] == "failed":
                 update(job, status="queued", error=None, log=[])
                 wake_workers()

@@ -70,6 +70,10 @@ function renderQueue() {
     const actions = document.createElement('div');
     actions.className = 'job-actions';
     if (job.status === 'failed') actions.append(button('Retry', () => api(`/api/jobs/${job.id}/retry`, {}).then(refresh)));
+    // Re-reads the Spotify playlist and queues only the songs added since (same as pasting it again).
+    if (isPlaylist(job) && job.status === 'listed') {
+      actions.append(button('Refresh', () => api(`/api/jobs/${job.id}/retry`, {}).then(refresh)));
+    }
     if (isPlaylist(job)) {
       // Dismissing a playlist row only hides it; the songs it queued stay.
       actions.append(button('Hide', () => api(`/api/jobs/${job.id}/discard`, {}).then(refresh)));
